@@ -6,7 +6,7 @@ FastAPI en Cloudflare Python Workers + Neon (Postgres) + Clerk (login) + Resend 
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| GET | `/health` | no | Chequeo de vida (ideal para UptimeRobot) |
+| GET | `/health` | no | Chequeo de vida (lo usa el check de Grafana) |
 | GET | `/api/me` | sí | Devuelve el id del usuario del token |
 | GET | `/api/tasks` | sí | Lista las tareas del usuario |
 | POST | `/api/tasks` | sí | Crea una tarea `{"title": "..."}` |
@@ -61,10 +61,4 @@ uv run pywrangler deploy
 - La primera vez, `secret put` pregunta si crear el Worker `taller-api`: responder que sí.
 - El `name` de `wrangler.jsonc` tiene que ser distinto del Worker del front, o el deploy lo pisa.
 - Si falta un secreto, la API responde `500` con el mensaje `Falta el secreto …`.
-- Logs en vivo del Worker desplegado: `npx wrangler tail taller-api`.
-
-## Qué probar primero (no está verificado)
-
-1. Que `pyjwt[crypto]` se empaquete bien (depende de `cryptography` en Pyodide).
-2. Que el endpoint HTTP de Neon (`https://<host>/sql`) responda desde el Worker.
-3. Que `request.scope["env"]` exponga las variables y secretos (comparar con el ejemplo FastAPI de `cloudflare/python-workers-examples`).
+- Logs en vivo del Worker desplegado: `npx wrangler tail taller-api`. Cada pedido deja una línea JSON con método, ruta, status y duración.

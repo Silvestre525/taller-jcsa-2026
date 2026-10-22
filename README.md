@@ -36,9 +36,11 @@ Navegador ── React + TanStack ──► Cloudflare Workers (assets estático
 ## Estructura del repo
 
 ```
-frontend/   app React (tiene su propio README)
-backend/    API FastAPI (tiene su propio README)
+frontend/   app React: src/ (código), wrangler.jsonc (deploy), .env.example (variables)
+backend/    API FastAPI: src/worker.py (código), wrangler.jsonc (deploy), .dev.vars.example (variables), schema.sql
 ```
+
+Cada carpeta tiene su propio README con más detalle.
 
 ---
 
@@ -62,10 +64,42 @@ Hacerlo **antes** del evento, porque crear cuentas en el momento consume mucho t
 - [ ] Un editor de código (VS Code, por ejemplo)
 
 ### Preparación
-- [ ] Hacer **fork** de este repositorio y clonarlo en tu computadora
-- [ ] Correr `npm install` dentro de `frontend/` y `uv sync` dentro de `backend/`
-- [ ] Probar que todo arranca en local, sin cuentas (ver `backend/README.md`):
-  `uv run pywrangler dev` en `backend/` (la primera vez descarga Python 3.13 para Workers) y `npm run dev` en `frontend/`
+- [ ] Hacer **fork** de este repositorio (botón *Fork* en GitHub) y clonar **tu fork**:
+  `git clone https://github.com/<tu-usuario>/taller-jcsa-2026.git`
+- [ ] Levantar la app en local siguiendo la sección siguiente. Si llegás a crear una tarea, estás listo.
+
+### Correr la app en local (sin cuentas)
+
+Necesitás dos terminales, una para la API y otra para el front:
+
+```bash
+# Terminal 1: API en http://localhost:8787
+cd backend
+cp .dev.vars.example .dev.vars
+uv sync
+uv run pywrangler dev        # la primera vez tarda: descarga Python y las dependencias para Workers
+```
+
+```bash
+# Terminal 2: front en http://localhost:5173
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Abrí http://localhost:5173, entrá a **Mis tareas** y creá una tarea. En la terminal de la API vas a ver una línea por pedido.
+
+Así funciona sin ninguna cuenta porque todo está simulado:
+
+| Pieza | Sin configurar | Cómo se conecta el servicio real |
+|---|---|---|
+| Base de datos | Tareas en memoria de la API | `NEON_CONNECTION_STRING` en `backend/.dev.vars` (bloque 2) |
+| Login | Sin login: el front manda el token `demo` y la API lo acepta | `VITE_CLERK_PUBLISHABLE_KEY` en `frontend/.env` y `CLERK_*` en `backend/.dev.vars` (bloque 3) |
+| Mail | Se imprime en la terminal de la API | `RESEND_API_KEY` en `backend/.dev.vars` (bloque 4) |
+
+La simulación la activa `MODO_LOCAL=1`, que solo existe en `.dev.vars`: la API desplegada nunca simula nada.
+Si cambiás `.dev.vars`, reiniciá la API (`Ctrl+C` y de nuevo `uv run pywrangler dev`); si cambiás `.env`, reiniciá el front.
 
 ---
 
@@ -97,7 +131,7 @@ Vamos a tener **dos Workers distintos** en Cloudflare y cada uno se identifica p
 ## 3. Paso a paso
 
 ### Bloque 1 · Front (Cloudflare)
-1. Probar local: `cd frontend && npm run dev`. Sin variables de entorno arranca en **modo demo** (sin login, datos en memoria).
+1. Subir a GitHub cualquier cambio que tengas (`git push`): Cloudflare construye el front desde tu fork.
 2. En Cloudflare: *Workers & Pages → Create → Import a repository* y elegir tu fork.
 3. Configurar:
    - *Project name*: el mismo `name` de `frontend/wrangler.jsonc` (si elegís otro, cambialo también en ese archivo y hacé push).
@@ -108,13 +142,12 @@ Vamos a tener **dos Workers distintos** en Cloudflare y cada uno se identifica p
 4. No hace falta indicar el directorio de salida: `frontend/wrangler.jsonc` ya publica `dist/`, sirve `index.html` en rutas como `/tareas`
    y habilita la URL `*.workers.dev` y las URLs de preview.
 5. La primera vez Cloudflare puede pedirte elegir tu subdominio `*.workers.dev` (es uno por cuenta).
+6. Abrir la URL del front: como todavía no tiene variables, arranca en **modo demo** (sin login, datos en memoria del navegador).
 
 ### Bloque 2 · API y base de datos
 1. En Neon: crear un proyecto, abrir el **SQL Editor**, ejecutar `backend/schema.sql` y copiar la *connection string*.
-2. `cd backend && cp .dev.vars.example .dev.vars`. Viene en **modo local** (todo simulado):
-   `uv run pywrangler dev` y probar `curl http://localhost:8787/health`.
-3. Completar `NEON_CONNECTION_STRING` en `.dev.vars` y reiniciar. Con el front local apuntando a la API local
-   (`VITE_API_URL=http://localhost:8787` en `frontend/.env`), crear tareas y verlas en Neon (*Tables*).
+2. Pegarla en `NEON_CONNECTION_STRING` de `backend/.dev.vars` y reiniciar la API local.
+3. Desde el front local, crear tareas y verlas en Neon (*Tables → tasks*). Ahora sobreviven a reiniciar la API.
 4. Cargar el secreto y desplegar:
    ```bash
    uv run pywrangler secret put NEON_CONNECTION_STRING   # la 1ª vez pregunta si crear el Worker: sí
@@ -129,9 +162,9 @@ Vamos a tener **dos Workers distintos** en Cloudflare y cada uno se identifica p
 2. Copiar la **Publishable key** (`pk_test_…`) y la **Frontend API URL** (`https://xxxx.clerk.accounts.dev`, en *Configure → API keys*).
 3. Backend:
    - `CLERK_ISSUER` = Frontend API URL y `CLERK_JWKS_URL` = Frontend API URL + `/.well-known/jwks.json`,
-     en `backend/.dev.vars` (local) y en `backend/wrangler.jsonc` (reemplazando `TU-INSTANCIA`).
+     en `backend/.dev.vars` (local) y en `backend/wrangler.jsonc` (reemplazando `TU-INSTANCIA`; no son secretos, se pueden commitear en tu fork).
    - `uv run pywrangler deploy`
-4. Front local: en `frontend/.env`, `VITE_CLERK_PUBLISHABLE_KEY` y `VITE_API_URL` (local o la del Worker).
+4. Front local: descomentar `VITE_CLERK_PUBLISHABLE_KEY` en `frontend/.env` y pegar la key. Reiniciar el front y probar el login en local.
 5. Front online: en el proyecto del front, *Settings → Build → Variables and secrets*, cargar **las dos**:
    `VITE_CLERK_PUBLISHABLE_KEY` y `VITE_API_URL` (`https://taller-api.<tu-subdominio>.workers.dev`, sin `/` final).
    Después, *Deployments → Retry deployment* (o un push) para que se reconstruya.
@@ -169,6 +202,7 @@ que se ve en Cloudflare (*Workers → taller-api → Observability*) o en vivo c
 | Síntoma | Causa probable y solución |
 |---|---|
 | `pywrangler` dice `uv version at least 0.12.3 required` | `uv self update` |
+| El front local dice `Failed to fetch` al cargar tareas | La API local no está corriendo (terminal 1) |
 | `secret put` pregunta si crear un Worker nuevo | Normal la primera vez: todavía no desplegaste la API. Confirmar que el nombre sea `taller-api` |
 | La URL del front responde `{"detail":"Not Found"}` | Esa URL tiene la API: o abriste la del Worker de la API, o el `name` de `backend/wrangler.jsonc` es igual al del front y lo pisaste. Corregir el `name` y redesplegar los dos |
 | `error code: 1042` en una URL `*.workers.dev` | No existe un Worker con ese nombre o no tiene habilitado `workers.dev`. Revisar el nombre en *Workers & Pages* |
@@ -182,7 +216,8 @@ que se ve en Cloudflare (*Workers → taller-api → Observability*) o en vivo c
 | El check de Grafana está en rojo | Abrir la URL del check en el navegador: tiene que responder `{"ok":true}`. Revisar que sea la de la API (no la del front) y que termine en `/health` |
 | Cambié una variable `VITE_*` y no pasa nada | Tienen que estar en las variables de **build** del front y hay que volver a desplegarlo |
 
-**Plan B:** si falla algún servicio, en local volvé a dejar vacía su variable en `.dev.vars` (con `MODO_LOCAL=1` se simula) o usá el **modo demo** del front (sin variables de entorno) para seguir el hilo del taller.
+**Plan B:** si falla algún servicio, en local volvé a dejar vacía su variable en `.dev.vars` (con `MODO_LOCAL=1` se simula)
+y seguí el taller con la app local. Si la API local no arranca, comentá `VITE_API_URL` en `frontend/.env`: el front pasa a **modo demo** y no la necesita.
 
 ---
 

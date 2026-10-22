@@ -22,3 +22,4 @@ pylock.toml
 
 # Zips originales del material (ya descomprimidos en frontend/ y backend/)
 *.zip
+.vscode/
