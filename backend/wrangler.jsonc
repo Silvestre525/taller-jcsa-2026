@@ -2,6 +2,8 @@
   "name": "taller-api",
   "main": "src/worker.py",
   "compatibility_date": "2026-08-27",
+  // URL pública *.workers.dev (es la que va en VITE_API_URL del front)
+  "workers_dev": true,
   // Si Wrangler se queja de este flag (ya obsoleto tras la GA), borralo.
   "compatibility_flags": ["python_workers"],
   "vars": {
