@@ -6,18 +6,9 @@
   "workers_dev": true,
   // Si Wrangler se queja de este flag (ya obsoleto tras la GA), borralo.
   "compatibility_flags": ["python_workers"],
-  // Logs y trazas del Worker (se ven en el dashboard de Cloudflare: Workers > taller-api > Observability).
-  // Bloque 5: después de crear los destinos en Cloudflare (Observability > Destinations),
-  // descomentá las líneas "destinations" para enviarlos también a Grafana Cloud.
+  // Logs del Worker: se ven en Cloudflare (Workers > taller-api > Observability) y con `npx wrangler tail taller-api`
   "observability": {
-    "logs": {
-      "enabled": true
-      // , "destinations": ["grafana-logs"]
-    },
-    "traces": {
-      "enabled": true
-      // , "destinations": ["grafana-traces"]
-    }
+    "logs": { "enabled": true }
   },
   "vars": {
     // Reemplazá TU-INSTANCIA por el dominio de tu app en Clerk (Frontend API URL)

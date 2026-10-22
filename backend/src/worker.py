@@ -30,7 +30,7 @@ app = FastAPI(title="Taller API")
 
 # Un error no manejado sale sin cabeceras CORS y el navegador solo muestra "Failed to fetch".
 # Lo convertimos en un 500 con JSON; como se registra antes que CORS, la respuesta las lleva.
-# Además, cada pedido deja una línea de log en JSON: es lo que después se consulta en Grafana.
+# Además, cada pedido deja una línea de log en JSON (se ve con `npx wrangler tail taller-api`).
 @app.middleware("http")
 async def registrar_pedido(request: Request, call_next):
     inicio = time.monotonic()
