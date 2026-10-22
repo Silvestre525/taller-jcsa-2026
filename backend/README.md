@@ -58,6 +58,11 @@ uv run pywrangler secret put RESEND_API_KEY
 uv run pywrangler deploy
 ```
 
+- La primera vez, `secret put` pregunta si crear el Worker `taller-api`: responder que sí.
+- El `name` de `wrangler.jsonc` tiene que ser distinto del Worker del front, o el deploy lo pisa.
+- Si falta un secreto, la API responde `500` con el mensaje `Falta el secreto …`.
+- Logs en vivo del Worker desplegado: `npx wrangler tail taller-api`.
+
 ## Qué probar primero (no está verificado)
 
 1. Que `pyjwt[crypto]` se empaquete bien (depende de `cryptography` en Pyodide).

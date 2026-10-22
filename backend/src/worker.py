@@ -11,6 +11,7 @@ import httpx
 import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from workers import WorkerEntrypoint
 
@@ -23,6 +24,17 @@ class Default(WorkerEntrypoint):
 
 
 app = FastAPI(title="Taller API")
+
+
+# Un error no manejado sale sin cabeceras CORS y el navegador solo muestra "Failed to fetch".
+# Lo convertimos en un 500 con JSON; como se registra antes que CORS, la respuesta las lleva.
+@app.middleware("http")
+async def errores_legibles(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        print(f"Error no manejado en {request.url.path}: {e!r}")
+        return JSONResponse({"detail": f"Error interno: {type(e).__name__}: {e}"}, status_code=500)
 
 # Usamos Authorization header (no cookies), por eso "*" alcanza para el taller.
 # En producción conviene limitarlo al dominio del front.
@@ -83,7 +95,9 @@ async def sql(env, query: str, params: list | None = None) -> list[dict]:
     """Ejecuta una consulta en Neon usando su endpoint HTTP (sin driver de Postgres)."""
     if simulado(env, "NEON_CONNECTION_STRING"):
         return await sql_simulado(query, params or [])
-    conn = env.NEON_CONNECTION_STRING
+    conn = config(env, "NEON_CONNECTION_STRING")
+    if not conn:
+        raise HTTPException(500, "Falta el secreto NEON_CONNECTION_STRING (pywrangler secret put NEON_CONNECTION_STRING)")
     host = urlparse(conn).hostname
     async with httpx.AsyncClient() as client:
         r = await client.post(
@@ -209,6 +223,8 @@ async def welcome(body: Welcome, request: Request, user_id: str = Depends(curren
     if simulado(env, "RESEND_API_KEY"):
         print(f"[modo local] mail de bienvenida para {body.email} (no se envió)")
         return {"sent": True}
+    if not config(env, "RESEND_API_KEY"):
+        raise HTTPException(500, "Falta el secreto RESEND_API_KEY (pywrangler secret put RESEND_API_KEY)")
     async with httpx.AsyncClient() as client:
         r = await client.post(
             "https://api.resend.com/emails",

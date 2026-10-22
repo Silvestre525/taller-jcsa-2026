@@ -26,3 +26,4 @@ Importar el repo de GitHub con path `frontend`, build command `npm run build`, d
 `npx wrangler deploy` y, para ramas que no son de producción, `npx wrangler versions upload`.
 El directorio de salida (`dist`) y el fallback de SPA están en `wrangler.jsonc`.
 Cargar `VITE_CLERK_PUBLISHABLE_KEY` y `VITE_API_URL` (URL del Worker de la API) como variables de **build**.
+El *Project name* en Cloudflare tiene que coincidir con el `name` de `wrangler.jsonc`, y ser distinto del de la API.
