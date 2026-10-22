@@ -31,7 +31,7 @@ export function Gate({ children }: { children: ReactNode }) {
 }
 
 export function UserMenu() {
-  if (DEMO) return <span className="badge">modo demo</span>
+  if (DEMO) return <span className="badge">sin login</span>
   return (
     <>
       <SignedOut><SignInButton mode="modal"><button className="btn">Ingresar</button></SignInButton></SignedOut>
