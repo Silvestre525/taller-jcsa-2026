@@ -4,6 +4,8 @@ Modo local: con MODO_LOCAL=1 en .dev.vars, cada servicio sin configurar se simul
 (tareas en memoria, cualquier token vale, el mail se imprime en consola). Así se puede
 desarrollar sin cuentas e ir conectando Neon, Clerk y Resend de a uno.
 """
+import json
+import time
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -28,13 +30,25 @@ app = FastAPI(title="Taller API")
 
 # Un error no manejado sale sin cabeceras CORS y el navegador solo muestra "Failed to fetch".
 # Lo convertimos en un 500 con JSON; como se registra antes que CORS, la respuesta las lleva.
+# Además, cada pedido deja una línea de log en JSON: es lo que después se consulta en Grafana.
 @app.middleware("http")
-async def errores_legibles(request: Request, call_next):
+async def registrar_pedido(request: Request, call_next):
+    inicio = time.monotonic()
     try:
-        return await call_next(request)
+        response = await call_next(request)
     except Exception as e:
         print(f"Error no manejado en {request.url.path}: {e!r}")
-        return JSONResponse({"detail": f"Error interno: {type(e).__name__}: {e}"}, status_code=500)
+        response = JSONResponse({"detail": f"Error interno: {type(e).__name__}: {e}"}, status_code=500)
+    # La plantilla de la ruta (/api/tasks/{task_id}) agrupa mejor que la URL con el id
+    ruta = getattr(request.scope.get("route"), "path", request.url.path)
+    print(json.dumps({
+        "evento": "pedido",
+        "metodo": request.method,
+        "ruta": ruta,
+        "status": response.status_code,
+        "ms": round((time.monotonic() - inicio) * 1000),
+    }))
+    return response
 
 # Usamos Authorization header (no cookies), por eso "*" alcanza para el taller.
 # En producción conviene limitarlo al dominio del front.

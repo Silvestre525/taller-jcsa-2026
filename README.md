@@ -145,9 +145,45 @@ Vamos a tener **dos Workers distintos** en Cloudflare y cada uno se identifica p
 4. En `/tareas`, escribir ese mail y apretar *Enviar*.
 
 ### Bloque 5 · Monitoreo (Grafana Cloud)
-`[Completar: definir y probar el flujo exacto antes del evento]`
 
-Objetivo: crear el stack gratuito en Grafana Cloud, conectar los logs o métricas del Worker y armar un panel básico que muestre las peticiones a la API.
+Dos capas: primero un chequeo externo que no depende de nada más, y después los logs y trazas del Worker.
+
+**A. ¿La API está viva? (Synthetic Monitoring)**
+1. En Grafana Cloud, crear el *stack* gratuito si todavía no lo tenés.
+2. *Testing & synthetics → Synthetics → Checks → Add new check → API Endpoint* (HTTP):
+   - URL: `https://taller-api.<tu-subdominio>.workers.dev/health`
+   - Probes: 2 ubicaciones (por ejemplo, São Paulo y Virginia del Norte). Frecuencia: cada 2 minutos.
+   - Validación: status `200`.
+3. Guardar y abrir el dashboard del check: disponibilidad y latencia desde cada ubicación.
+
+> El plan gratuito incluye una cantidad mensual de ejecuciones: 2 probes cada 2 minutos son unas 43.000 por mes.
+> Con más probes o más frecuencia podés pasarte.
+
+**B. ¿Qué está pasando adentro? (logs y trazas por OpenTelemetry)**
+
+La API escribe una línea JSON por pedido (`{"evento": "pedido", "metodo": …, "ruta": …, "status": …, "ms": …}`)
+y Cloudflare puede reenviar esos logs y las trazas del Worker a Grafana.
+
+1. Grafana: *Connections → Add new connection → OpenTelemetry (OTLP) → Quickstart → JavaScript → Create a new token*.
+   Copiar los valores de `OTEL_EXPORTER_OTLP_ENDPOINT` y `OTEL_EXPORTER_OTLP_HEADERS`.
+   El header viene como `Authorization=Basic%20…`: el valor a usar es `Basic …` (con `%20` reemplazado por un espacio).
+2. Cloudflare: *Observability → Destinations → Add destination*, dos veces:
+
+   | Nombre | Tipo | Endpoint | Header |
+   |---|---|---|---|
+   | `grafana-logs` | Logs | `<OTEL_EXPORTER_OTLP_ENDPOINT>/v1/logs` | `Authorization: Basic …` |
+   | `grafana-traces` | Traces | `<OTEL_EXPORTER_OTLP_ENDPOINT>/v1/traces` | `Authorization: Basic …` |
+
+3. En `backend/wrangler.jsonc`, descomentar las dos líneas `"destinations"` y `uv run pywrangler deploy`.
+4. Usar la app unos minutos (crear, marcar, borrar tareas). Los datos pueden tardar unos minutos en llegar.
+5. Grafana: *Drilldown → Logs*, buscar el servicio `taller-api` y filtrar por `pedido`. En *Drilldown → Traces*, ver la traza de un pedido
+   (incluye las llamadas a Neon, Clerk y Resend).
+6. Panel: *Dashboards → New → Add visualization*, fuente Loki (logs), con una consulta como
+   `sum by (status) (count_over_time({service_name="taller-api"} |= "pedido" | json [5m]))`.
+   Si no devuelve nada, revisá en *Drilldown* el nombre exacto de la etiqueta del servicio.
+
+> Antes de llegar a Grafana, los logs también se ven en Cloudflare (*Workers → taller-api → Observability*)
+> y en vivo con `npx wrangler tail taller-api`.
 
 ---
 
@@ -166,6 +202,8 @@ Objetivo: crear el stack gratuito en Grafana Cloud, conectar los logs o métrica
 | `Falta el secreto …` | Cargarlo con `uv run pywrangler secret put <NOMBRE>` (o en `.dev.vars` en local) |
 | Error de base de datos | Que `schema.sql` se haya ejecutado en Neon y la connection string sea la correcta |
 | El mail no llega | Revisar spam y que el destinatario sea el mail de tu cuenta de Resend |
+| En Grafana no aparecen logs ni trazas | Esperar unos minutos; revisar que el `deploy` se hizo con las líneas `destinations` descomentadas, que los nombres coincidan con los de *Observability → Destinations* y que el header sea `Basic …` (sin `%20`). En *Destinations* se ve si hubo envíos fallidos |
+| `wrangler deploy` falla mencionando un destino | Las líneas `destinations` están descomentadas pero el destino no existe en Cloudflare (o tiene otro nombre) |
 | Cambié una variable `VITE_*` y no pasa nada | Tienen que estar en las variables de **build** del front y hay que volver a desplegarlo |
 
 **Plan B:** si falla algún servicio, en local volvé a dejar vacía su variable en `.dev.vars` (con `MODO_LOCAL=1` se simula) o usá el **modo demo** del front (sin variables de entorno) para seguir el hilo del taller.
