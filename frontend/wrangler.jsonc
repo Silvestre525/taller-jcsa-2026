@@ -1,6 +1,6 @@
 {
   // Deploy del front como Worker con assets estáticos (Cloudflare Workers Builds).
-  "name": "taller-jcsa-frontend-Silvestre",
+  "name": "taller-jcsa-frontend-silvestre",
   "compatibility_date": "2026-10-01",
   // URL pública *.workers.dev y URLs de preview para ramas que no son main
   "workers_dev": true,
