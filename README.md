@@ -4,6 +4,14 @@ Taller práctico de **JCSA**. Vas a desplegar una app web completa (lista de tar
 
 > **Los planes gratuitos y sus límites cambian.** Revisá las páginas oficiales de cada servicio antes de depender de ellos en un proyecto propio.
 
+## Para quién es
+
+Estudiantes de informática, sistemas o carreras afines, y cualquiera que quiera llevar sus proyectos a producción sin costo.
+
+**Conocimientos previos:** programación básica (idealmente algo de Python y JavaScript), nociones de Git/GitHub y de qué es una API.
+
+Al terminar vas a tener tu propia app funcionando en internet y vas a saber replicar el proceso en tus proyectos.
+
 ## Qué vamos a construir
 
 ```
@@ -48,14 +56,16 @@ Hacerlo **antes** del evento, porque crear cuentas en el momento consume mucho t
 
 ### Software
 - [ ] Git
-- [ ] Node.js 22 LTS (`node -v`)
+- [ ] Node.js 22.12 o superior, recomendado 24 LTS (`node -v`)
 - [ ] Python 3.12 o superior (`python --version`)
-- [ ] [uv](https://docs.astral.sh/uv/) (`uv --version`)
+- [ ] [uv](https://docs.astral.sh/uv/) 0.12.3 o superior (`uv --version`; para actualizar: `uv self update`)
 - [ ] Un editor de código (VS Code, por ejemplo)
 
 ### Preparación
 - [ ] Hacer **fork** de este repositorio y clonarlo en tu computadora
 - [ ] Correr `npm install` dentro de `frontend/` y `uv sync` dentro de `backend/`
+- [ ] Probar que todo arranca en local, sin cuentas (ver `backend/README.md`):
+  `uv run pywrangler dev` en `backend/` (la primera vez descarga Python 3.13 para Workers) y `npm run dev` en `frontend/`
 
 ---
 
@@ -82,8 +92,9 @@ Hacerlo **antes** del evento, porque crear cuentas en el momento consume mucho t
 
 ### Bloque 2 · API y base de datos
 1. En Neon: crear un proyecto, abrir el **SQL Editor**, ejecutar `backend/schema.sql` y copiar la *connection string*.
-2. `cd backend && cp .dev.vars.example .dev.vars` y completar `NEON_CONNECTION_STRING`.
-3. `uv run pywrangler dev` y probar `curl http://localhost:8787/health`.
+2. `cd backend && cp .dev.vars.example .dev.vars`. Así viene en **modo local** (todo simulado):
+   `uv run pywrangler dev` y probar `curl http://localhost:8787/health`.
+3. Completar `NEON_CONNECTION_STRING` en `.dev.vars`, reiniciar y verificar que las tareas se guardan en Neon.
 4. Cargar el secreto y desplegar:
    ```bash
    uv run pywrangler secret put NEON_CONNECTION_STRING
@@ -120,7 +131,7 @@ Objetivo: crear el stack gratuito en Grafana Cloud, conectar los logs o métrica
 | El mail no llega | Revisar spam y que el destinatario sea tu propio mail (sin dominio verificado) |
 | Cambié una variable `VITE_*` y no pasa nada | Hay que volver a construir y desplegar el front |
 
-**Plan B:** si falla algo en tu equipo, usá el **modo demo** del front (sin variables de entorno) para seguir el hilo del taller.
+**Plan B:** si falla algún servicio, volvé a dejar vacía su variable en `.dev.vars` (con `MODO_LOCAL=1` se simula) o usá el **modo demo** del front (sin variables de entorno) para seguir el hilo del taller.
 
 ---
 
