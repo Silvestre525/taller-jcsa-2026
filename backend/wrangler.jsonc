@@ -1,0 +1,15 @@
+{
+  "name": "taller-api",
+  "main": "src/worker.py",
+  "compatibility_date": "2026-08-27",
+  // Si Wrangler se queja de este flag (ya obsoleto tras la GA), borralo.
+  "compatibility_flags": ["python_workers"],
+  "vars": {
+    // Reemplazá TU-INSTANCIA por el dominio de tu app en Clerk (Frontend API URL)
+    "CLERK_ISSUER": "https://TU-INSTANCIA.clerk.accounts.dev",
+    "CLERK_JWKS_URL": "https://TU-INSTANCIA.clerk.accounts.dev/.well-known/jwks.json",
+    "MAIL_FROM": "onboarding@resend.dev"
+  }
+  // Secretos (no van acá): NEON_CONNECTION_STRING y RESEND_API_KEY
+  // -> uv run pywrangler secret put NEON_CONNECTION_STRING
+}

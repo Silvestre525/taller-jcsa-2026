@@ -1,0 +1,19 @@
+# Copiar a .dev.vars (no se sube a git). Solo se usa con `pywrangler dev`.
+# Con MODO_LOCAL=1, cada servicio con su variable vacía se simula:
+#   NEON_CONNECTION_STRING vacía -> tareas en memoria
+#   CLERK_JWKS_URL vacía         -> acepta cualquier token (usuario "usuario-local")
+#   RESEND_API_KEY vacía         -> el mail se imprime en la consola
+# Completalas de a una para ir conectando los servicios reales.
+MODO_LOCAL=1
+NEON_CONNECTION_STRING=
+RESEND_API_KEY=
+# Estas pisan las de wrangler.jsonc solo en local
+CLERK_ISSUER=
+CLERK_JWKS_URL=
+MAIL_FROM=onboarding@resend.dev
+
+# Ejemplos de valores reales:
+# NEON_CONNECTION_STRING=postgresql://usuario:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+# RESEND_API_KEY=re_xxxxxxxx
+# CLERK_ISSUER=https://TU-INSTANCIA.clerk.accounts.dev
+# CLERK_JWKS_URL=https://TU-INSTANCIA.clerk.accounts.dev/.well-known/jwks.json
