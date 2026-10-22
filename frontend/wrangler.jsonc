@@ -1,0 +1,10 @@
+{
+  // Deploy del front como Worker con assets estáticos (Cloudflare Workers Builds).
+  "name": "taller-frontend",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Es una SPA: rutas como /tareas tienen que devolver index.html
+    "not_found_handling": "single-page-application"
+  }
+}

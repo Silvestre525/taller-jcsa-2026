@@ -15,7 +15,7 @@ Al terminar vas a tener tu propia app funcionando en internet y vas a saber repl
 ## Qué vamos a construir
 
 ```
-Navegador ── React + TanStack ──► Cloudflare Pages
+Navegador ── React + TanStack ──► Cloudflare Workers (assets estáticos)
     │
     └─► API FastAPI (Python) ──► Cloudflare Workers
               ├─► Neon (Postgres)
@@ -26,7 +26,7 @@ Navegador ── React + TanStack ──► Cloudflare Pages
 
 | Capa | Herramienta |
 |---|---|
-| Front | React + Vite + TanStack Router y Query, en Cloudflare Pages |
+| Front | React + Vite + TanStack Router y Query, en Cloudflare Workers (assets estáticos) |
 | Backend | FastAPI en Cloudflare Workers (Python) |
 | Base de datos | Neon (Postgres serverless) |
 | Autenticación | Clerk |
@@ -74,7 +74,7 @@ Hacerlo **antes** del evento, porque crear cuentas en el momento consume mucho t
 | Bloque | Min | Qué hacemos | Listo cuando... |
 |---|---|---|---|
 | 0 | 15 | Arquitectura y chequeo de cuentas | Todos tienen sus cuentas y el repo clonado |
-| 1 | 30 | Front en Cloudflare Pages | La app abre en una URL `*.pages.dev` |
+| 1 | 30 | Front en Cloudflare | La app abre en una URL `*.workers.dev` |
 | 2 | 30 | API FastAPI + Neon | `/health` responde y `/api/tasks` devuelve datos |
 | 3 | 25 | Login con Clerk | Solo un usuario logueado ve sus tareas |
 | 4 | 15 | Mail con Resend | Llega el mail de bienvenida |
@@ -85,10 +85,16 @@ Hacerlo **antes** del evento, porque crear cuentas en el momento consume mucho t
 
 ## 3. Paso a paso
 
-### Bloque 1 · Front (Cloudflare Pages)
+### Bloque 1 · Front (Cloudflare)
 1. Probar local: `cd frontend && npm run dev`. Sin variables de entorno arranca en **modo demo**.
-2. En Cloudflare: *Workers & Pages → Create → Pages → Connect to Git* y elegir tu fork.
-3. Configurar: *Root directory* `frontend`, *Build command* `npm run build`, *Output directory* `dist`.
+2. En Cloudflare: *Workers & Pages → Create → Import a repository* y elegir tu fork.
+3. Configurar (el directorio de salida ya está en `frontend/wrangler.jsonc`):
+   - *Project name*: `taller-frontend` (el mismo `name` de `frontend/wrangler.jsonc`)
+   - *Build command*: `npm run build`
+   - *Deploy command*: `npx wrangler deploy`
+   - *Non-production branch deploy command*: `npx wrangler versions upload`
+   - *Path* (root directory): `frontend`
+4. Las variables `VITE_*` se cargan en *Settings → Build → Variables and secrets* (son de build, no de runtime).
 
 ### Bloque 2 · API y base de datos
 1. En Neon: crear un proyecto, abrir el **SQL Editor**, ejecutar `backend/schema.sql` y copiar la *connection string*.
@@ -104,7 +110,7 @@ Hacerlo **antes** del evento, porque crear cuentas en el momento consume mucho t
 
 ### Bloque 3 · Login (Clerk)
 1. En Clerk: crear una aplicación y copiar la **publishable key** y la **Frontend API URL**.
-2. Front: `VITE_CLERK_PUBLISHABLE_KEY` en `frontend/.env` y en las variables de Cloudflare Pages.
+2. Front: `VITE_CLERK_PUBLISHABLE_KEY` en `frontend/.env` y en las variables de build del front en Cloudflare.
 3. Backend: completar `CLERK_ISSUER` y `CLERK_JWKS_URL` en `backend/wrangler.jsonc` (reemplazar `TU-INSTANCIA`) y volver a desplegar.
 4. Probar: iniciar sesión y crear una tarea. Con otro usuario no deberías ver esa tarea.
 
@@ -129,7 +135,7 @@ Objetivo: crear el stack gratuito en Grafana Cloud, conectar los logs o métrica
 | El front no llega a la API | Que `VITE_API_URL` apunte al Worker desplegado (no a `localhost`) |
 | Error de base de datos | Que `NEON_CONNECTION_STRING` esté cargada como secreto y que `schema.sql` se haya ejecutado |
 | El mail no llega | Revisar spam y que el destinatario sea tu propio mail (sin dominio verificado) |
-| Cambié una variable `VITE_*` y no pasa nada | Hay que volver a construir y desplegar el front |
+| Cambié una variable `VITE_*` y no pasa nada | Tienen que estar en las variables de **build** y hay que volver a desplegar el front |
 
 **Plan B:** si falla algún servicio, volvé a dejar vacía su variable en `.dev.vars` (con `MODO_LOCAL=1` se simula) o usá el **modo demo** del front (sin variables de entorno) para seguir el hilo del taller.
 
